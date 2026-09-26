@@ -1,0 +1,47 @@
+diff --git a/lib/raop_handlers.h b/lib/raop_handlers.h
+index 82d4a06..d526423 100644
+--- a/lib/raop_handlers.h
++++ b/lib/raop_handlers.h
+@@ -106,7 +106,7 @@ raop_handler_info(raop_conn_t *conn,
+     }
+   
+     /* don't need anything below here in the response to initial  "txtAirPlay" GET/info request */
+-    if (content_type) {
++    if (content_type && (add_txt_airplay || add_txt_raop)) {
+         goto finished;
+     }
+  
+@@ -938,6 +938,33 @@ raop_handler_setup(raop_conn_t *conn,
+         logger_log(raop->logger, LOGGER_DEBUG, "eport = %d, tport = %d", event_port, timing_lport);
+     }
+ 
++    /* Newer clients can request receiver capabilities in control SETUP.
++       Reuse GET /info so both negotiation paths describe the same receiver. */
++    plist_t combined_info_node = plist_dict_get_item(req_root_node, "combinedGetInfoWithControlSetup");
++    uint8_t combined_info = 0;
++    if (PLIST_IS_BOOLEAN(combined_info_node)) {
++        plist_get_bool_val(combined_info_node, &combined_info);
++    }
++    if (combined_info) {
++        char *info_data = NULL;
++        int info_len = 0;
++        plist_t info_node = NULL;
++        http_response_t *info_response = http_response_create();
++        http_response_init(info_response, "RTSP/1.0", 200, "OK");
++        raop_handler_info(conn, request, info_response, &info_data, &info_len);
++        http_response_destroy(info_response);
++        if (info_data && info_len > 0) {
++            plist_from_bin(info_data, (uint32_t) info_len, &info_node);
++            plist_mem_free(info_data);
++        }
++        if (PLIST_IS_DICT(info_node)) {
++            plist_dict_set_item(res_root_node, "info", info_node);
++            logger_log(raop->logger, LOGGER_INFO, "Combined control SETUP: receiver info supplied");
++        } else if (info_node) {
++            plist_free(info_node);
++        }
++    }
++
+     // Process stream setup requests
+     plist_t req_streams_node = plist_dict_get_item(req_root_node, "streams");
+     if (PLIST_IS_ARRAY(req_streams_node)) {

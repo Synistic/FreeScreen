@@ -1,0 +1,1 @@
+-n FreeScreen -nh -p 7000 -s 1920x1080@60 -fps 60 -vsync no -avdec -vs d3d11videosink -as wasapi2sink

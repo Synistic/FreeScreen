@@ -1,0 +1,16 @@
+# Local binaries, SDKs and runtime state never belong in the source repository.
+/runtime/
+/vendor/
+/native-staging/
+/.local/
+/dist/
+ReceiverHost.exe
+*.log
+*.pid
+*.bin
+firewall-status.txt
+preview.png
+*.zip
+.uxplay*
+.env
+.env.*
